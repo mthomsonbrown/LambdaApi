@@ -1,0 +1,9 @@
+# My Notes
+/docs
+
+# The deployment file
+/deploy_me/*.zip
+
+# test compilations
+/tests/.cache*
+/tests/__pycache__*
