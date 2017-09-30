@@ -1,76 +1,70 @@
-"""Tests for the version 1 API."""
 import requests
 import pytest
 
-
-api_id = 'sitb0jdwm4'
-region = 'us-east-2'
-deployment = 'prod'
-version = 'v1'
-route = 'key'
-endpoint = 'https://' \
-           '{}.execute-api.{}.' \
-           'amazonaws.com/{}/{}/{}'.format(api_id, region,
-                                           deployment, version, route)
-
-key = 'test_key'
-value = 'test_value'
-
-
-def test_if_tests_work():
-    """Pytest is working."""
-    working = True
-    assert working is True
+from test_base import TestBase
 
 
 @pytest.mark.v1
-def test_get():
-    """GET method returns OK status."""
-    response = requests.get(endpoint)
-    assert response.status_code is 200, response.text
+class TestV1(TestBase):
+    """Tests for the version 1 API."""
 
+    def setup_class(cls):
+        cls.endpoint = cls.generate_endpoint('v1')
 
-@pytest.mark.v1
-def test_post():
-    """POST returns OK status.  For now, this will just echo the request."""
-    response = requests.post(
-        endpoint,
-        json={"key": key, "value": value}
-        )
-    validate_simple_response(response, key, value)
+    def test_if_tests_work(self):
+        """Pytest is working."""
+        working = True
+        assert working is True
 
+    def test_get(self):
+        """GET method returns OK status."""
+        response = requests.get(self.endpoint)
+        assert response.status_code is 200, response.text
 
-@pytest.mark.v1
-def test_put():
-    """PUT returns OK status.  For now, this will just echo the request."""
-    response = requests.put(
-        endpoint,
-        json={"key": key, "value": value}
-        )
-    validate_simple_response(response, key, value)
+    def test_post(self):
+        """POST returns OK status.
 
+        For now, this will just echo the request.
+        """
+        response = requests.post(
+            self.endpoint,
+            json={"key": self.valid_key, "value": self.valid_value})
+        self.validate_simple_response(
+            response, self.valid_key, self.valid_value)
 
-@pytest.mark.v1
-def test_delete():
-    """DELETE returns OK status.  For now, this will just echo the request."""
-    response = requests.delete(
-        endpoint,
-        json={"key": key, "value": value}
-        )
-    validate_simple_response(response, key, value)
+    def test_put(self):
+        """PUT returns OK status.
 
+        For now, this will just echo the request.
+        """
+        response = requests.put(
+            self.endpoint,
+            json={"key": self.valid_key, "value": self.valid_value})
+        self.validate_simple_response(
+            response, self.valid_key, self.valid_value)
 
-def validate_simple_response(response, key, value):
-    """Validate a simple successful response.
+    def test_delete(self):
+        """DELETE returns OK status.
 
-    Asserts the response has OK status, and that the key and value are
-    mentionded in the text.
+        For now, this will just echo the request.
+        """
+        response = requests.delete(
+            self.endpoint,
+            json={"key": self.valid_key, "value": self.valid_value})
+        self.validate_simple_response(
+            response, self.valid_key, self.valid_value)
 
-    Args:
-        response (requests.Response): The response returned from the API call
-        key (str): The key field sent in the request
-        value (str): The value field sent in the request
-    """
-    assert response.status_code is 200, response.text
-    assert key in response.text
-    assert value in response.text
+    def validate_simple_response(self, response, key, value):
+        """Validate a simple successful response.
+
+        Asserts the response has OK status, and that the key and value are
+        mentionded in the text.
+
+        Args:
+            response (requests.Response): The response returned from the API
+            key (str): The key field sent in the request
+            value (str): The value field sent in the request
+        """
+        assert response.status_code is 200, response.text
+        assert key in response.text
+        assert value in response.text
