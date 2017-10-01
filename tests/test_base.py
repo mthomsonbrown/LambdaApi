@@ -1,3 +1,4 @@
+import time
 
 
 class TestBase(object):
@@ -12,7 +13,16 @@ class TestBase(object):
     valid_key = 'test_key'
     valid_value = 'test_value'
 
+    test_value = {"Test": "JSON content"}
+
     @classmethod
     def generate_endpoint(cls, version):
         return 'https://{}.execute-api.{}.amazonaws.com/{}/{}/{}'.format(
                     cls.api_id, cls.region, cls.deployment, version, cls.route)
+
+    @classmethod
+    def unique_key(cls):
+        """Create a key based on the current time that can be used for
+        successful post requests.
+        """
+        return 'test_key_' + str(int(time.time()))
