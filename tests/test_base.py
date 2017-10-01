@@ -11,7 +11,8 @@ class TestBase(object):
 
     # These are assumed to actually be in the database
     valid_key = 'test_key'
-    valid_value = 'test_value'
+    valid_value = 'Saved Data'
+    update_key = 'update_key'
 
     test_value = {"Test": "JSON content"}
 

@@ -2,29 +2,34 @@
 from __future__ import print_function
 
 import boto3
+import json
 
 # TODO: Use requests module
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
 HTTP_FORBIDDEN = 403
+HTTP_NOT_FOUND = 404
 HTTP_INTERNAL_SERVER_ERROR = 500
 TABLE_NAME = 'lambda_api_storage'
 PRIMARY_KEY = 'lambda_api_key'
 VALUE_FIELD = 'value'
 
-# Stub function to populate as a return value from API methods
-output = {"isBase64Encoded": False,
-          "statusCode": HTTP_INTERNAL_SERVER_ERROR,
-          "headers": {'Accept-Encoding': 'UTF-8',
-                      'Content-Type': 'application/json'},
-          "body": {}
-          }
+dynamo = boto3.resource('dynamodb').Table(TABLE_NAME)
 
 
-def db_error(message, status=HTTP_INTERNAL_SERVER_ERROR):
-    output['statusCode'] = status
-    output['body'] = message
-    return output
+def http_message(message, status=HTTP_INTERNAL_SERVER_ERROR):
+    """Formats status messages to send back to the client."""
+    return http_response({"message": message}, status)
+
+
+def http_response(body, status=HTTP_INTERNAL_SERVER_ERROR):
+    """Packages response data to send back to the client."""
+    return {
+        "isBase64Encoded": False,
+        "statusCode": status,
+        "headers": {"Content-Type": "application/json; charset=UTF-8"},
+        "body": json.dumps(body)
+    }
 
 
 def key_get_handler(event, context):
@@ -34,26 +39,20 @@ def key_get_handler(event, context):
     pair for that key will be returned.  If the path parameter is not
     included, all key value pairs will be returned.
     """
-    dynamo = boto3.resource('dynamodb').Table(TABLE_NAME)
-
-    params = ''
-    key = ''
-    params = event['pathParameters']
-    if params:
-        key = params['key']
-        try:
-            result = dynamo.get_item(Key={PRIMARY_KEY: key})
-        except Exception:
-            return db_error('get item failed')
+    if event['pathParameters']:
+        key = event['pathParameters']['key']
+        result = dynamo.get_item(Key={PRIMARY_KEY: key})
+        if 'Item' not in result:
+            return http_message(
+                "Key [{}] not in Database".format(key), HTTP_NOT_FOUND)
+        requested_data = result['Item']
     else:
-        try:
-            result = dynamo.scan()
-        except Exception:
-            return db_error('get item failed')
+        result = dynamo.scan()
+        if 'Items' not in result:
+            return http_message("Database is empty", HTTP_OK)
+        requested_data = result['Items']
 
-    output['statusCode'] = HTTP_OK
-    output['body'] = str(result)
-    return output
+    return http_response(requested_data, HTTP_OK)
 
 
 def key_post_handler(event, context):
@@ -62,49 +61,63 @@ def key_post_handler(event, context):
     Currently this only accepts keys passed as path parameters.  If the key
     already exists, this method will abort.
     """
-    dynamo = boto3.resource('dynamodb').Table(TABLE_NAME)
+    if not event['pathParameters']:
+        # TODO: serve JSON requests here
+        return http_message("Missing path params", HTTP_BAD_REQUEST)
 
-    key = ''
-    if 'pathParameters' not in event:
-        return db_error("Missing path params", HTTP_BAD_REQUEST)
-    params = event['pathParameters']
-    if params:
-        key = params['key']
-        if not key:
-            return db_error("Missing path params", HTTP_BAD_REQUEST)
-    else:
-        return db_error("Missing key in path params", HTTP_BAD_REQUEST)
+    key = event['pathParameters']['key']
 
     value = event['body']
 
     payload = {PRIMARY_KEY: key, VALUE_FIELD: value}
-    result = {}
     try:
-        result = dynamo.put_item(
+        dynamo.put_item(
             Item=payload,
             ConditionExpression='attribute_not_exists({})'.format(PRIMARY_KEY))
     # TODO: Catch botocore ConditionalCheckFailedException specifically
     except Exception:
-        output['statusCode'] = HTTP_FORBIDDEN
-        output['body'] = str({
-            "message": "An entry for that key already exists.  "
-                       + "If you would like to update the value, please "
-                       + "use the PUT HTTP method"
-        })
-        return output
+        return http_response(
+            "An entry for that key already exists.  "
+            + "If you would like to update the value, please "
+            + "use the PUT HTTP method",
+            HTTP_FORBIDDEN)
 
-    output['statusCode'] = HTTP_OK
-    output['body'] = str({"message": "Data saved: {}".format(result)})
-    return output
+    return http_message("Data Saved", HTTP_OK)
 
 
 def key_put_handler(event, context):
     """Handle PUT requests to the key endpoint."""
-    return "Trying to update key: {} with value: {}".format(event.get('key'),
-                                                            event.get('value'))
+    if not event['pathParameters']:
+        # TODO: serve JSON requests here
+        return http_message("Missing path params", HTTP_BAD_REQUEST)
+
+    key = event['pathParameters']['key']
+
+    value = event['body']
+
+    payload = {PRIMARY_KEY: key, VALUE_FIELD: value}
+    try:
+        dynamo.put_item(
+            Item=payload,
+            ConditionExpression='attribute_exists({})'.format(PRIMARY_KEY))
+    # TODO: Catch botocore ConditionalCheckFailedException specifically
+    except Exception:
+        return http_response(
+            "That key doesn't exist in the database.  "
+            + "If you would like to add the value, please "
+            + "use the POST HTTP method",
+            HTTP_FORBIDDEN)
+
+    return http_response("Data Saved", HTTP_OK)
 
 
 def key_delete_handler(event, context):
     """Handle DELETE requests to the key endpoint."""
-    return "Trying to delete key: {} with value: {}".format(event.get('key'),
-                                                            event.get('value'))
+    if not event['pathParameters']:
+        # TODO: serve JSON requests here
+        return http_message("Missing path params", HTTP_BAD_REQUEST)
+
+    key = event['pathParameters']['key']
+    dynamo.delete_item(Key={PRIMARY_KEY: key})
+
+    return http_message("Success", HTTP_OK)
