@@ -16,7 +16,7 @@ This code is designed to be deployed using AWS Lambda and API Gateway services.
 The included tests can be run to verify the API is working as intended.
 
 #### Setup:
-- Install Python 2.7 and pip following their respective documentation.
+- Install Python 2.7 and pip following their documentation.
 - Install pytest: `pip install pytest`
 
 #### Execution:
@@ -29,14 +29,14 @@ The included tests can be run to verify the API is working as intended.
 ---
 
 ## Usage
-There are two versions available available from the endpoints `/v1` and `/v2`.  The `/v1` API is merely a stub outputting test strings for the four HTTP methods I chose to work with: GET, PUT, POST, and DELETE.
+There are two versions available from the endpoints `/v1` and `/v2`.  The `/v1` API is merely a stub outputting test strings for the four HTTP methods I chose to work with: GET, PUT, POST, and DELETE.
 
 This documentation will just cover the `/v2` api, so URLs listed will assume a root URL including `/v2`.
 
 
 ## Show All Keys and Values
 
-Returns a JSON array of all key value pairs stored in the database.
+Returns a JSON array of all key/value pairs stored in the database.
 
 * **URL**
   /key
@@ -86,7 +86,7 @@ Returns a JSON object associated with the key specified.
 
 ---
 
-## Add Key/Value Pair
+## Add Key/Value Pair Using Path Parameter
 
 Add a key value pair to the database.  Note, this will only allow new entries to be added.  It does not modify entries if they already exist.
 
@@ -114,7 +114,36 @@ Add a key value pair to the database.  Note, this will only allow new entries to
 
 ---
 
-## Modify an Entry
+## Add a Key/Value Pair Using Request Body
+
+Add a key value pair to the database.  Note, this will only allow new entries to be added.  It does not modify entries if they already exist.
+
+* **URL**
+  /key
+
+* **Method**
+  `POST`
+
+* **URL Params**
+  None
+
+* **Data Params**
+  **Required**
+  `body: { 'key': key, 'value': value }`
+  key (string): A new identifier for this data record
+  value (any): Data to save in this record
+
+* **Success Response**
+  * Code: 200
+  * Message: "Data Saved"
+
+* **Error Response**
+  * Code: 403
+  * Message: "An entry for that key already exists."
+
+---
+
+## Modify an Entry Using Path Parameter
 
 Updates a given key's value with the new value specified.  Note, this will not create a new entry if the key isn't found in the database.  It will only update an existing record.
 
@@ -142,11 +171,40 @@ Updates a given key's value with the new value specified.  Note, this will not c
 
 ---
 
+## Modify an Entry Using Request Body
+
+Updates a given key's value with the new value specified.  Note, this will not create a new entry if the key isn't found in the database.  It will only update an existing record.
+
+* **URL**
+  /key
+
+* **Method**
+  `PUT`
+
+* **URL Params**
+  None
+
+* **Data Params**
+  **Required**
+  `body: { 'key': key, 'value': value }`
+  key (string): The key for the record you want to change
+  value (any): Data to save in this record
+
+* **Success Response**
+  * Code: 200
+  * Message: "Data Saved"
+
+* **Error Response**
+  * Code: 403
+  * Message: "That key doesn't exist in the database."
+
+---
+
 ## Delete Entry
 
 Deletes a specified record.
 
-**URL**
+* **URL**
  /key/{key}
 
 * **Method**
@@ -160,8 +218,8 @@ Deletes a specified record.
   None
 
 * **Success Response**
- * Code: 200
- * Message: "Success"
+  * Code: 200
+  * Message: "Success"
 
 * **Error Response**
   None

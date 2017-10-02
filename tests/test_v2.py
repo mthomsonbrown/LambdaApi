@@ -30,6 +30,12 @@ class TestV2(TestBase):
             self.endpoint + '/' + self.unique_key(), json=self.test_value)
         assert 'Data Saved' in response.text
 
+    def test_post_from_body(self):
+        """Posting data succeeds when key listed in request body."""
+        json = {'key': self.unique_key(), 'value': self.test_value}
+        response = requests.post(self.endpoint, json=json)
+        assert 'Data Saved' in response.text
+
     def test_post_existing_key(self):
         """Posting an existing key returns an error."""
         response = requests.post(
@@ -41,12 +47,18 @@ class TestV2(TestBase):
         """Posting without a path parameter returns HTTP Bad Request."""
         response = requests.post(
             self.endpoint, json=self.test_value)
-        assert response.status_code == status.bad_request
+        assert response.status_code == status.bad_request, response.text
 
     def test_put_existing_key(self):
         """Calling PUT on an existing key should update the value."""
         response = requests.put(
             self.endpoint + '/' + self.update_key, json={"New": "Value"})
+        assert 'Data Saved' in response.text
+
+    def test_put_from_body(self):
+        """Updating data succeeds when key listed in request body."""
+        json = {'key': self.update_key, 'value': self.test_value}
+        response = requests.put(self.endpoint, json=json)
         assert 'Data Saved' in response.text
 
     def test_put_new_key(self):
@@ -70,3 +82,13 @@ class TestV2(TestBase):
         requests.delete(self.endpoint + '/' + key)
         response = requests.get(self.endpoint + '/' + key)
         assert response.status_code == status.not_found, response.text
+
+    def test_delete_twice(self):
+        """Calling delete on the same data twice should not throw an error."""
+        key = self.unique_key()
+        requests.post(
+            self.endpoint + '/' + key, json=self.test_value)
+        response = requests.get(self.endpoint + '/' + key)
+        assert response.status_code == status.ok, response.text
+        requests.delete(self.endpoint + '/' + key)
+        requests.delete(self.endpoint + '/' + key)
