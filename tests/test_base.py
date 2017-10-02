@@ -26,4 +26,4 @@ class TestBase(object):
         """Create a key based on the current time that can be used for
         successful post requests.
         """
-        return 'test_key_' + str(int(time.time()))
+        return 'test_key_' + str(round(time.time() * 1000))
